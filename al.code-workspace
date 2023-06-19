@@ -1,13 +1,13 @@
 {
   "folders": [
     {
+      "path": "Auto Reserve Demo"
+    },
+    {
       "path": ".AL-Go"
     },
     {
       "path": ".github"
-    },
-    {
-      "path": "Auto Reserve Demo"
     }
   ],
   "settings": {
