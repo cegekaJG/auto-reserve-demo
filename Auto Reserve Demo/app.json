@@ -2,7 +2,7 @@
   "id": "72fd7864-eedf-4c08-9ea0-c444fad6940a",
   "name": "Auto Reserve Demo",
   "publisher": "Cegeka",
-  "version": "1.0.0.0",
+  "version": "1.0.0.1",
   "brief": "",
   "description": "",
   "privacyStatement": "",
@@ -17,7 +17,7 @@
   "idRanges": [
     {
       "from": 50000,
-      "to": 59999
+      "to": 50049
     }
   ],
   "features": [

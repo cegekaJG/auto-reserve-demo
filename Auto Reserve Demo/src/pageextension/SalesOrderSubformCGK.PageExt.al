@@ -24,7 +24,7 @@ pageextension 50000 "Sales Order Subform CGK" extends "Sales Order Subform"
 
                 trigger OnAction()
                 begin
-                    Rec.AutoReserveLotNo(sLotNo);
+                    Rec.AutoReserveLotNo(sLotNo, false);
                     Clear(sLotNo);
                 end;
             }
@@ -36,12 +36,17 @@ pageextension 50000 "Sales Order Subform CGK" extends "Sales Order Subform"
 
                 trigger OnAction()
                 begin
-                    Rec.CancelReservationOfLotNo(sLotNo);
+                    Rec.CancelReservationOfLotNo(sLotNo, false);
                     Clear(sLotNo);
                 end;
             }
         }
     }
+
+    trigger OnAfterGetCurrRecord()
+    begin
+        Clear(sLotNo);
+    end;
 
     var
         sLotNo: Code[50];

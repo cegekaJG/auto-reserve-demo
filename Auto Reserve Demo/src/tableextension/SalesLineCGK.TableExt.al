@@ -1,6 +1,6 @@
 tableextension 50000 "Sales Line CGK" extends "Sales Line"
 {
-    procedure AutoReserveLotNo(sLotNo: Code[50])
+    procedure AutoReserveLotNo(sLotNo: Code[50]; bSkipDialog: Boolean)
     var
         recReservEntry: Record "Reservation Entry";
         tempTrackingSpec: Record "Tracking Specification" temporary;
@@ -12,6 +12,7 @@ tableextension 50000 "Sales Line CGK" extends "Sales Line"
         sMessage: Text;
     begin
         Rec.TestField(Type, Enum::"Sales Line Type"::Item);
+        Rec.TestField("Location Code");
 
         tempTrackingSpec.InitFromSalesLine(Rec);
         tempTrackingSpec."Lot No." := sLotNo; // Add tracking filters here
@@ -30,6 +31,9 @@ tableextension 50000 "Sales Line CGK" extends "Sales Line"
         FilterSurplusReservationEntries(recReservEntry, tempTrackingSpec);
         recReservEntry.FindFirst();
 
+        if bSkipDialog then
+            exit;
+
         // Create reserved reservation entries from surplus reservation entries (for Reservation)
         if cuReservAssist.ReserveSurplus(tempTrackingSpec, recReservEntry) then
             sMessage := successMsg
@@ -39,10 +43,11 @@ tableextension 50000 "Sales Line CGK" extends "Sales Line"
         Message(sMessage, tempTrackingSpec."Quantity (Base)", tempTrackingSpec.Description, Rec."Document No.", Rec."Line No.")
     end;
 
-    procedure CancelReservationOfLotNo(sLotNo: Code[50])
+    procedure CancelReservationOfLotNo(sLotNo: Code[50]; bSkipDialog: Boolean)
     var
         recReservEntry: Record "Reservation Entry";
         cuReservEngineMgt: Codeunit "Reservation Engine Mgt.";
+        confirmMsg: Label 'Are you sure you want to remove all reservations of lot no. "%1" for this sales line?', Comment = '%1: Lot No.';
     begin
         Rec.TestField(Type, Enum::"Sales Line Type"::Item);
 
@@ -54,8 +59,9 @@ tableextension 50000 "Sales Line CGK" extends "Sales Line"
 
         recReservEntry.FindSet(); // Throw error if not found
 
-        if not Confirm(StrSubstNo('Are you sure you want to remove all reservations of lot no. "%1" for this sales line?', sLotNo)) then
-            exit;
+        if not bSkipDialog then
+            if not Confirm(StrSubstNo(confirmMsg, sLotNo)) then
+                exit;
 
         repeat
             cuReservEngineMgt.CancelReservation(recReservEntry); // Assumes source of matching line is Item Ledger Entry, see Reservation (Page 498), action "CancelReservationCurrentLine"
