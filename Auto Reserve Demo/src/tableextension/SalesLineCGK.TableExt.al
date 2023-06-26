@@ -5,11 +5,10 @@ tableextension 50000 "Sales Line CGK" extends "Sales Line"
         recReservEntry: Record "Reservation Entry";
         tempTrackingSpec: Record "Tracking Specification" temporary;
         cuReservAssist: Codeunit "Reservation Assistant CGK";
-        dQtyAvailableBase: Decimal;
+        dQtyAvailable, dQtyAvailableBase : Decimal;
         enmReservStatus: Enum "Reservation Status";
         failMsg: Label 'Unable to reserve complete requested quantity of %1 %2 for Sales Line %3-%4.', Comment = '%1: Quantity, %2: Description, %3: Sales Doc No., %4: Sales Line No.';
         successMsg: Label 'Reserved %1 %2 for Sales Line %3-%4.', Comment = '%1: Quantity, %2: Description, %3: Sales Doc No., %4: Sales Line No.';
-        sMessage: Text;
     begin
         Rec.TestField(Type, Enum::"Sales Line Type"::Item);
         Rec.TestField("Location Code");
@@ -19,6 +18,8 @@ tableextension 50000 "Sales Line CGK" extends "Sales Line"
 
         // Get total available qty of item with lot no.
         dQtyAvailableBase := cuReservAssist.GetTotalAvailableQuantityOfTrackingSpec(tempTrackingSpec);
+        dQtyAvailable := tempTrackingSpec.CalcQty(dQtyAvailableBase);
+        tempTrackingSpec.SetQuantities(dQtyAvailableBase, dQtyAvailable, dQtyAvailableBase, dQtyAvailableBase, dQtyAvailableBase, 0, 0);
 
         // If available, create surplus reservation entry (for Item Tracking Lines)
         if dQtyAvailableBase > 0 then begin
@@ -29,18 +30,24 @@ tableextension 50000 "Sales Line CGK" extends "Sales Line"
 
         // Find reservations for Sales Line with status Surplus and tracking info
         FilterSurplusReservationEntries(recReservEntry, tempTrackingSpec);
-        recReservEntry.FindFirst();
 
-        if bSkipDialog then
-            exit;
+        if not recReservEntry.FindFirst() then begin
+            if not bSkipDialog then
+                Error(failMsg, tempTrackingSpec."Qty. to Handle (Base)", tempTrackingSpec.Description, Rec."Document No.", Rec."Line No.");
+        end;
+
+        // Update quantity to available qty. of lot no.
+        if Rec."Quantity (Base)" < recReservEntry."Quantity (Base)" then begin
+            Rec.Validate("Quantity (Base)", recReservEntry."Quantity (Base)");
+            Rec.Modify(true);
+        end;
 
         // Create reserved reservation entries from surplus reservation entries (for Reservation)
-        if cuReservAssist.ReserveSurplus(tempTrackingSpec, recReservEntry) then
-            sMessage := successMsg
-        else
-            sMessage := failMsg;
-
-        Message(sMessage, tempTrackingSpec."Quantity (Base)", tempTrackingSpec.Description, Rec."Document No.", Rec."Line No.")
+        if cuReservAssist.ReserveSurplus(tempTrackingSpec, recReservEntry) then begin
+            if not bSkipDialog then
+                Message(successMsg, tempTrackingSpec."Qty. to Handle (Base)", tempTrackingSpec.Description, Rec."Document No.", Rec."Line No.")
+        end else
+            Error(failMsg, tempTrackingSpec."Qty. to Handle (Base)", tempTrackingSpec.Description, Rec."Document No.", Rec."Line No.");
     end;
 
     procedure CancelReservationOfLotNo(sLotNo: Code[50]; bSkipDialog: Boolean)

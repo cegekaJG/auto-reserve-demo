@@ -36,12 +36,13 @@ codeunit 50000 "Reservation Assistant CGK"
     var
         cuReservMgt: Codeunit "Reservation Management";
         cuUoMMgt: Codeunit "Unit of Measure Management";
-        dQtyToHandle: Decimal;
+        dQtyToHandleBase, dQtyToHandle : Decimal;
     begin
-        dQtyToHandle := cuUoMMgt.CalcQtyFromBase(recReservEntry."Qty. to Handle (Base)", recReservEntry."Qty. per Unit of Measure");
+        dQtyToHandleBase := recReservEntry."Qty. to Handle (Base)";
+        dQtyToHandle := cuUoMMgt.CalcQtyFromBase(dQtyToHandleBase, recReservEntry."Qty. per Unit of Measure");
         Clear(cuReservMgt);
         cuReservMgt.SetCalcReservEntry(tempTrackingSpec, recReservEntry);
-        cuReservMgt.AutoReserve(bFullAutoReserv, recReservEntry.Description, WorkDate(), dQtyToHandle, recReservEntry."Qty. to Handle (Base)"); // AutoReserve reserves all surplus reservation lines with matching tracking spec, no iteration necessary
+        cuReservMgt.AutoReserve(bFullAutoReserv, recReservEntry.Description, WorkDate(), dQtyToHandle, dQtyToHandleBase); // AutoReserve reserves all surplus reservation lines with matching tracking spec, no iteration necessary
     end;
 
     procedure CreateReservationEntryFromTrackingSpecification(var recTrackSpec: Record "Tracking Specification"; enmReservStatus: Enum "Reservation Status"; dQtyBase: Decimal): Boolean
